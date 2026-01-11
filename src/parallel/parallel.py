@@ -73,10 +73,10 @@ P = ParamSpec("P")
 
 def _extract_exceptions(futures_with_exception: list[Future[Any]]) -> list[BaseException]:
     """
-    Extract the exceptions from a number of finished `Future`s which are known to have an exception.
+    Extract the exceptions from a number of finished `Future` objects which are known to have an exception.
 
-    :param futures_with_exception: The `Future`s to extract the exceptions from.
-    :returns: The extracted exceptions. `BaseException`s will be listed first.
+    :param futures_with_exception: The `Future` objects to extract the exceptions from.
+    :returns: The extracted exceptions. `BaseException` instances will be listed first.
     """
     exceptions: list[BaseException] = []
     for future in futures_with_exception:
@@ -114,8 +114,8 @@ def _wait_for_futures(
     :param futures: The futures to wait for
     :param timeout: If set, the amount of time the `futures` may take to finish.
     :param return_when: When to return a result. `ReturnWhen.FIRST_COMPLETED` is not supported.
-    :param on_exception: The callable for handling the finished futures when a exception is being handled. The exception
-                         will be reraised right after this function returns.
+    :param on_exception: The callable for handling the finished futures when an exception is being handled. The
+                         exception will be reraised right after this function returns.
     :returns: The results of the `futures`, in that same order.
     """
     if return_when == ReturnWhen.FIRST_COMPLETED:
@@ -228,18 +228,18 @@ class FutureCollection:
         exceptions are not raised.
 
         :param timeout: The amount of time to wait for the results to become available.
-        :param return_when: When `results` will return. If set to FIRST_EXCEPTION, the first exception to occur will
-                            be raised immediately, even when the other threads haven't finished yet.
+        :param return_when: When `results` will return. If set to `ReturnWhen.FIRST_EXCEPTION`, the first exception to
+                            occur will be raised immediately, even when the other threads haven't finished yet.
         :returns: The results of all the parallel calls, in the order they were chained.
         :raises TimeoutError: If `timeout` was set and the result were not available before that time.
-        :raises Exception: If exactly one of the calls finished with an Exception, or at least one of the calls finished
-                           with an exception and none of the calls finished with a BaseException and `return_when` was
-                           set to FIRST_EXCEPTION.
-        :raises ExceptionGroup: If multiple calls finished with an Exception, none of which was a BaseException.
+        :raises Exception: If exactly one of the calls finished with an `Exception`, or at least one of the calls
+                           finished with an exception and none of the calls finished with a `BaseException` and
+                           `return_when` was set to `ReturnWhen.FIRST_EXCEPTION`.
+        :raises ExceptionGroup: If multiple calls finished with an `Exception`, none of which was a `BaseException`.
         :raises BaseException: If exactly one of the calls finished with a BaseException, or at least one of the calls
-                               finished with an exception and `return_when` was set to FIRST_EXCEPTION.
+                               finished with an exception and `return_when` was set to `ReturnWhen.FIRST_EXCEPTION`.
         :raises BaseExceptionGroup: If multiple calls finished with an exception and at least one of them was a
-                                    BaseException.
+                                    `BaseException`.
         """
         if self._futures is None:
             raise RuntimeError("The futures from this collection have been passed on by a call to parallel().")
@@ -250,7 +250,7 @@ class FutureCollection:
         Call another function in parallel.
 
         This will create a new `FutureCollection` instance, which replaces this instance. All calls on this instance
-        become invalid after `parallel()` has been called.
+        become invalid after the function object returned by `parallel()` has been called.
 
         :param func: The function to call.
         :returns: A function object with the same signature as `func`, except that it returns a new `FutureCollection`
@@ -322,10 +322,10 @@ class FutureContextCollection:
                         that this timeout is a last resort, as a context managers that does not finish `__enter__`
                         within this time will never have its `__exit__` called, even when its `__enter__` eventually
                         does finish.
-        :param parallel_exit: If True, leaving the `FutureContextCollection`'s context will leave the contained context
-                              managers in parallel, as well. Note that this does not apply when an exception occurs
-                              while entering the contained context managers and the already entered contained context
-                              managers need to be left again.
+        :param parallel_exit: If `True`, leaving the `FutureContextCollection`'s context will leave the contained
+                              context managers in parallel, as well. Note that this does not apply when an exception
+                              occurs while entering the contained context managers and the already entered contained
+                              context managers need to be left again.
         """
         self._timeout = timeout
         self._context_managers: tuple[AbstractContextManager[Any], ...] | None = ()
@@ -521,12 +521,12 @@ class FutureContextCollection:
         :param context_manager: The context manager to enter.
         :param timeout: The amount of time that all the context managers may take to `__enter__` their contexts. Note
                         that this timeout is a last resort, as a context manager that does not finish `__enter__`
-                        within this time will never have iys `__exit__` called, even when its `__enter__` eventually
+                        within this time will never have its `__exit__` called, even when its `__enter__` eventually
                         does finish.
-        :param parallel_exit: If True, leaving the `FutureContextCollection`'s context will leave the contained context
-                              managers in parallel, as well. Note that this does not apply when an exception occurs
-                              while entering the contained context managers and the already entered contained context
-                              managers need to be left again.
+        :param parallel_exit: If `True`, leaving the `FutureContextCollection`'s context will leave the contained
+                              context managers in parallel, as well. Note that this does not apply when an exception
+                              occurs while entering the contained context managers and the already entered contained
+                              context managers need to be left again.
         :returns: A `FutureContextCollection` with the one `context_manager` in it.
         """
         collection = FutureContextCollection(timeout=timeout, parallel_exit=parallel_exit)
@@ -566,8 +566,8 @@ def parallel(
     :param context_manager: The context manager to enter.
     :param timeout: The amount of time that all the context managers may take to `__enter__` their contexts. Note that
                     this timeout is a last resort, as a context manager that does not finish `__enter__` within this
-                    time will never have iys `__exit__` called, even when its `__enter__` eventually does finish.
-    :param parallel_exit: If True, leaving the `FutureContextCollection`'s context will leave the contained context
+                    time will never have its `__exit__` called, even when its `__enter__` eventually does finish.
+    :param parallel_exit: If `True`, leaving the `FutureContextCollection`'s context will leave the contained context
                           managers in parallel, as well. Note that this does not apply when an exception occurs while
                           entering the contained context managers and the already entered contained context managers
                           need to be left again.

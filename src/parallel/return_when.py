@@ -10,7 +10,7 @@ from enum import Enum
 
 
 class ReturnWhen(Enum):
-    """When to return while waiting for a set of `Future`s to finish."""
+    """When to return while waiting for a set of `Future` objects to finish."""
 
     # Note that the values are compatible with the API design of `Future.wait()`
 

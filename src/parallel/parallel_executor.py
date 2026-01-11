@@ -62,7 +62,7 @@ class _ParallelExecutorPool:
         Attempt to submit a number of calls to the `ThreadPoolExecutor`.
 
         Calls will only be submitted if threads are currently available on the `ThreadPoolExecutor`, making sure that
-        the calls will indeed start running immediately. If less threads are available than there are calls, calls will
+        the calls can indeed start running immediately. If less threads are available than there are calls, calls will
         be submitted in the order they are listed in `funcs`. The remainder of the calls will not be submitted at all.
 
         :param funcs: The calls to be submitted.
@@ -142,7 +142,7 @@ class ParallelExecutor:
     @classmethod
     def _reset_pools(cls) -> None:
         """
-        Thread-safely remove all `_ParallelExectorPool`s.
+        Thread-safely remove all `_ParallelExectorPool` instances.
 
         This *can* break any concurrent calls on `execute` or `execute_one`, because those have been optimized not to
         need the mutex when iterating the pools.
@@ -155,7 +155,7 @@ class ParallelExecutor:
     @classmethod
     def _pool_count(cls) -> int:
         """
-        Thread-safely count the number of `_ParallelExecutorPool`s.
+        Thread-safely count the number of `_ParallelExecutorPool` instances.
 
         This is for testing only.
         """
