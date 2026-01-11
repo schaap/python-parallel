@@ -49,7 +49,6 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
-    ParamSpec,
     TypeVar,
     cast,
     final,
@@ -62,6 +61,11 @@ from parallel.return_when import ReturnWhen
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
+
+if sys.version_info <= (3, 10):  # noqa: UP036  # Backwards compatibility
+    from typing_extensions import ParamSpec
+else:  # pragma: no cover  # Backwards compatibility
+    from typing import ParamSpec
 
 
 T = TypeVar("T")
@@ -151,7 +155,9 @@ def _wait_for_futures(
                     if futures_with_baseexception:
                         futures_with_baseexception[0].result()
                     futures_with_exception[0].result()
-                    raise RuntimeError("Finished future's exception was NOT raised by retrieving the future's result")
+                    raise RuntimeError(
+                        "Finished future's exception was NOT raised by retrieving the future's result"
+                    )  # pragma: no cover  # Impossible to hit unless concurrent.future has a severe bug
 
                 # Multiple exceptions: extract them all and reraise as a group
                 exceptions = _extract_exceptions(futures_with_exception)
@@ -396,7 +402,7 @@ class FutureContextCollection:
                 """
                 self._cm = cm
 
-            def __enter__(self) -> None:
+            def __enter__(self) -> None:  # pragma: no cover  # This is a wrapper for exiting context managers, only
                 raise NotImplementedError
 
             def __exit__(

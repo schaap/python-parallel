@@ -7,7 +7,7 @@ Call python functions in parallel using threads.
 - Fully typed parallel calls in Python 3.11 and later
 - Guaranteed parallel execution, with each call on its own thread
 - Uses exception groups in Python 3.11 and later, as defined in [PEP 654](https://peps.python.org/pep-0654/)
-- Backwards compatible to Python 3.8
+- Backwards compatible to Python 3.9
 
 # How To Use
 Below is a very simple example that shows the basic use of the chained `parallel` calls, both for calling functions and for entering context managers.
@@ -99,10 +99,11 @@ You can run code linters as follows (development was done using the `--preview` 
     uv run ruff format  # --preview
     uv run ruff check  # --preview
 
-You can run the tests as follows:
+You can run the tests as follows (with coverage):
 
-    uv run pytest .
+    uv run coverage run -m pytest .
+    uv run coverage report
 
 You will notice that some tests are always skipped. This is correct: some tests are parametrized on the Python version.
 
-By default the Python version is set to 3.11 in `.python-version`. Feel free to change this to the Python version you need, e.g. 3.8 on older systems.
+By default the Python version is set to 3.11 in `.python-version`. Feel free to change this to the Python version you need, e.g. 3.9 on older systems. You will have some missing code coverage with Python <3.11.

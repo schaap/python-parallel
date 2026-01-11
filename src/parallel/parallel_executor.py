@@ -23,18 +23,23 @@ thread.
 
 from __future__ import annotations
 
+import sys
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import Semaphore
 from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
-    ParamSpec,
     TypeVar,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+if sys.version_info <= (3, 10):  # noqa: UP036  # Backwards compatibility
+    from typing_extensions import ParamSpec
+else:  # pragma: no cover  # Backwards compatibility
+    from typing import ParamSpec
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -106,7 +111,7 @@ class _ParallelExecutorPool:
         future: Future[T]
         try:
             future = self.pool.submit(f, *args, **kwargs)
-        except:
+        except:  # pragma: no cover  # Practically unhittable
             self.semaphore.release()
             raise
 
@@ -213,6 +218,6 @@ class ParallelExecutor:
         # Submit the function to a new pool
         pool = cls._add_pool()
         future = pool.run_one(f, *args, **kwargs)
-        if future is None:
+        if future is None:  # pragma: no cover  # Practically unhittable
             raise RuntimeError("Could not acquire sempaphore on newly created pool")
         return future

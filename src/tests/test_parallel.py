@@ -35,7 +35,7 @@ from contextlib import contextmanager
 from enum import Enum
 from random import Random
 from threading import Barrier, BrokenBarrierError, Semaphore
-from typing import TYPE_CHECKING, Any, Final, Generic, ParamSpec, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Final, Generic, TypeVar, cast
 
 import pytest
 
@@ -46,9 +46,14 @@ if TYPE_CHECKING:
     from collections.abc import Generator, Sequence
     from types import TracebackType
 
+if sys.version_info <= (3, 10):  # noqa: UP036  # Backwards compatibility
+    from typing_extensions import ParamSpec
+else:  # pragma: no cover  # Backwards compatibility
+    from typing import ParamSpec
+
 if sys.version_info >= (3, 11):  # noqa: UP036  # Backwards compatibility
     from typing import assert_type
-else:
+else:  # pragma: no cover  # Backwards compatibility
 
     def assert_type(value: Any, expected_type: Any) -> None:  # noqa: ANN401
         pass
@@ -85,20 +90,18 @@ KWARGS_LISTS: list[dict[str, Any]] = [
 
 if sys.version_info < (3, 11):  # noqa: UP036  # Backwards compatibility is a feature
 
-    class ExceptionGroup(Exception):  # noqa: A001, N818  # ruff fails to see this is pre-3.11 code
-        """Naive and oversimplified implementation of ExceptionGroup for easier testing."""
-
-        def __init__(self, msg: str, exceptions: Sequence[Exception]) -> None:
-            super().__init__(msg)
-            self.exceptions = exceptions
-
     class BaseExceptionGroup(BaseException):  # noqa: A001  # ruff fails to see this is pre-3.11 code
         """Naive and oversimplified implementation of BaseExceptionGroup for easier testing."""
 
         def __init__(self, msg: str, exceptions: Sequence[BaseException]) -> None:
-            assert any(not isinstance(exc, Exception) for exc in exceptions)  # Absolute requirement of BaseException
             super().__init__(msg)
             self.exceptions = exceptions
+
+    class ExceptionGroup(BaseExceptionGroup, Exception):  # noqa: A001, N818  # ruff fails to see this is pre-3.11 code
+        """Naive and oversimplified implementation of ExceptionGroup for easier testing."""
+
+        def __init__(self, msg: str, exceptions: Sequence[Exception]) -> None:
+            super().__init__(msg, exceptions)
 
 
 class Sentinel(Enum):
@@ -123,10 +126,10 @@ class Woopsie(Exception):  # noqa: N818  # Error suffix would be less readable f
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Woopsie) and self.identifier == other.identifier
 
-    def __ne__(self, other: object) -> bool:
+    def __ne__(self, other: object) -> bool:  # pragma: no cover  # Included for completeness' sake, only
         return not self.__eq__(other)
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # pragma: no cover  # Included for completeness' sake, only
         return hash((self.__class__.__qualname__, self.identifier))
 
 
@@ -145,10 +148,10 @@ class BaseWoopsie(BaseException):
     def __eq__(self, other: object) -> bool:
         return isinstance(other, BaseWoopsie) and self.identifier == other.identifier
 
-    def __ne__(self, other: object) -> bool:
+    def __ne__(self, other: object) -> bool:  # pragma: no cover  # Included for completeness' sake, only
         return not self.__eq__(other)
 
-    def __hash__(self) -> int:
+    def __hash__(self) -> int:  # pragma: no cover  # Included for completeness' sake, only
         return hash((self.__class__.__qualname__, self.identifier))
 
 
@@ -167,15 +170,12 @@ def wait_for_signal(barrier: Barrier, result: T, raises: BaseException | None = 
     return result
 
 
-def raise_exception(exc: Any, after_barrier: Barrier | None = None) -> None:  # noqa: ANN401
+def raise_exception(exc: Any) -> None:  # noqa: ANN401
     """
     Simple function to be scheduled. Will immediately raise an exception.
 
     :param exc: The exception to raise. Purposefully untyped.
-    :param after_barrier: Only raise the exception after waiting for the given barrier.
     """
-    if after_barrier is not None:
-        after_barrier.wait(timeout=2)
     raise exc
 
 
@@ -345,8 +345,6 @@ def will_raise(  # noqa: C901  # Somewhat complex, but that's a necessity
             return caught.__class__ == expected
         if isinstance(expected, BaseExceptionGroup) and isinstance(caught, BaseExceptionGroup):
             return check_sub_exceptions(cast(BaseExceptionGroup, expected), cast(BaseExceptionGroup, caught))
-        if isinstance(expected, ExceptionGroup) and isinstance(caught, ExceptionGroup):
-            return check_sub_exceptions(cast(ExceptionGroup, expected), cast(ExceptionGroup, caught))
         return caught == expected
 
     try:
@@ -442,6 +440,13 @@ def test_will_raise() -> None:  # noqa: PLR0915  # Many statements, sure
     # Does not suppress incorrect specific ExceptionGroup
     with pytest.raises(ExceptionGroup):
         with will_raise(ExceptionGroup("", [Woopsie(1)])):
+            try:
+                raise Woopsie(2)
+            except Woopsie as exc:
+                raise ExceptionGroup("", [exc])
+
+    with pytest.raises(ExceptionGroup):
+        with will_raise(ExceptionGroup("", [Woopsie(2), Woopsie(2)])):
             try:
                 raise Woopsie(2)
             except Woopsie as exc:
@@ -731,6 +736,8 @@ def test_future_collection_parallel_breaks_future_collection() -> None:
     # Verify that everything of the original collection is broken
     with pytest.raises(RuntimeError):
         incomplete_parallel()
+    with pytest.raises(RuntimeError):
+        _ = collection.futures
     with pytest.raises(RuntimeError):
         collection.parallel(lambda: 2)
     with pytest.raises(RuntimeError):
@@ -1779,6 +1786,21 @@ def test_future_context_collection_exit_parallel_prefers_baseexception_on_multip
     assert enter_succeeded
 
 
+def test_future_context_collection_no_parallel_while_entered() -> None:
+    """
+    Verify that chaining a `parallel` call on a `FutureContextCollection` that has already been entered is not possible.
+    """
+    collection = parallel(SignalledContext(yields=1)).parallel(SignalledContext(yields=2))
+    with collection:
+        with pytest.raises(RuntimeError):
+            collection.parallel(SignalledContext(yields=3))
+
+    # After the context manager has been left again, .parallel is allowed again
+    new_collection = collection.parallel(SignalledContext(yields=3))
+    with new_collection:
+        pass
+
+
 def test_future_context_collection_create_passes_on_arguments() -> None:
     """
     Verify that plain `parallel` create a new `FutureContextCollection` with the arguments passed on.
@@ -1837,7 +1859,7 @@ def test_parallel_with_context_manager_creates_future_context_collection() -> No
             exc_type: type[BaseException] | None,
             exc_value: BaseException | None,
             exc_traceback: TracebackType | None,
-        ) -> bool | None:
+        ) -> bool | None:  # pragma: no cover  # __exit__ is only implemented to make this a context manager
             return None
 
     collection = parallel(ContextManagerWithCall())

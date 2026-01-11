@@ -381,8 +381,10 @@ def test_parallel_executor_pool_run_returned_futures_match_request() -> None:
         assert not not_done
 
         # Verify that the futures match the jobs: the original index of the job has to match the future's result
+        assert len(jobs) == len(futures)
         assert all(
-            job_with_future[0][0] == job_with_future[1].result() for job_with_future in zip(jobs, futures, strict=True)
+            job_with_future[0][0] == job_with_future[1].result()
+            for job_with_future in zip(jobs, futures)  # noqa: B905  # strict= is too new
         )
 
 

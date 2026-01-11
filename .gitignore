@@ -6,6 +6,8 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
+# Tooling
 .venv
 uv.lock
+.coverage
+htmlcov

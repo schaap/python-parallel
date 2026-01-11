@@ -26,13 +26,17 @@ from typing import (
     Generic,
     Literal,
     NoReturn,
-    ParamSpec,
     TypeVar,
     final,
     overload,
 )
 
 from parallel.return_when import ReturnWhen
+
+if sys.version_info <= (3, 10):  # noqa: UP036  # Backwards compatibility
+    from typing_extensions import ParamSpec
+else:  # pragma: no cover  # Backwards compatibility
+    from typing import ParamSpec
 
 T1 = TypeVar("T1")
 P = ParamSpec("P")
